@@ -1263,11 +1263,13 @@ footer .copy { font-weight: 800; color: var(--heading); font-size: 13.5px; margi
     if (!userOff) {
       /* on by default: plays right away where the browser allows, otherwise at the visitor's first touch anywhere */
       audio.play().then(() => { ui(); showTip(); }).catch(() => {
-        const EV = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'];
+        /* keep trying on every touch until the browser accepts one (phones ignore some event types) */
+        const EV = ['touchend', 'pointerup', 'click', 'keydown', 'mousedown'];
+        const stop = () => EV.forEach(t => removeEventListener(t, first, true));
         const first = e => {
           if (box.contains(e.target)) return;
-          EV.forEach(t => removeEventListener(t, first, true));
-          if (!userOff && audio.paused) play();
+          if (userOff || !audio.paused) { stop(); return; }
+          audio.play().then(() => { stop(); ui(); showTip(); }).catch(() => {});
         };
         EV.forEach(t => addEventListener(t, first, true));
       });
